@@ -1,9 +1,7 @@
 package matasano
 
 import "bytes"
-import "fmt"
-
-// import "log"
+import "log"
 import "testing"
 
 func Test_1_1(t *testing.T) {
@@ -37,18 +35,14 @@ func Test_1_2(t *testing.T) {
 func Test_1_3(t *testing.T) {
 	x := "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
 	xB := bytesOfHex(x)
-
 	plaintext := xB
 	score := englishnessCount(xB)
-	for rune := range englishFreqs {
+	for rune := '0'; rune <= 'z'; rune++ {
 		guess := xorcs(xB, rune)
 		guessScore := englishnessCount(guess)
 		if guessScore > score {
 			plaintext, score = guess, guessScore
 		}
 	}
-	if fmt.Sprintf("%s", plaintext) == "" {
-		t.Errorf("wrongo")
-	}
-	// log.Printf("%s", plaintext)
+	log.Printf("%q\n", plaintext)
 }
