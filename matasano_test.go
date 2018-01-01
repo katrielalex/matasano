@@ -1,6 +1,7 @@
 package matasano
 
 import "bytes"
+import "log"
 import "testing"
 
 func Test_1_1(t *testing.T) {
@@ -29,4 +30,20 @@ func Test_1_2(t *testing.T) {
 	if !bytes.Equal(xor(x, y), z) {
 		t.Errorf("xoring gave the wrong answer")
 	}
+}
+
+func Test_1_3(t *testing.T) {
+	x := "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
+	x_b := bytes_of_hex(x)
+
+	plaintext := x_b
+	score := englishness_count(x_b)
+	for rune, _ := range english_freqs {
+		guess := xorc_s(x_b, rune)
+		guess_score := englishness_count(guess)
+		if guess_score > score {
+			plaintext, score = guess, guess_score
+		}
+	}
+	log.Printf("%s", plaintext)
 }
