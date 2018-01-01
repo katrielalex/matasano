@@ -16,9 +16,9 @@ def validate_challenge(ctx, param, value):
 
 @click.command()
 @click.argument("challenge", callback=validate_challenge)
-@click.argument("data")
+@click.argument("data", nargs=-1)
 def mata(challenge, data):
-    return solve(challenge, data)
+    return solve(challenge, *data)
     print(f"set number {challenge}")
 
 if __name__ == "__main__":

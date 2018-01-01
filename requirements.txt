@@ -1,4 +1,4 @@
 attrs
 click
-tqdm
 numpy
+tqdm
