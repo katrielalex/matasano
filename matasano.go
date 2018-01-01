@@ -2,6 +2,7 @@ package matasano
 
 import b64 "encoding/base64"
 import hex "encoding/hex"
+import "errors"
 import "fmt"
 import "log"
 import "math"
@@ -29,6 +30,13 @@ func hexOfBytes(b []byte) string {
 // encode a byte array into b64
 func b64OfBytes(b []byte) string {
 	return b64.StdEncoding.EncodeToString(b)
+}
+
+// decode a b64 string into bytes
+func bytesOfB64(s string) []byte {
+	t, err := b64.StdEncoding.DecodeString(s)
+	check(err)
+	return t
 }
 
 // convert hex to b64 via bytes
@@ -138,11 +146,12 @@ func englishnessCount(p []byte) int {
 	for _, rune := range fmt.Sprintf("%s", p) {
 		if isLetter(rune) {
 			if 'A' <= rune && rune <= 'Z' {
-				rune += 26
+				total += int(englishFreqs[rune+26] * 5)
+			} else {
+				total += int(englishFreqs[rune] * 10)
 			}
-			total += int(englishFreqs[rune] * 10)
 		} else {
-			if strings.ContainsRune("\"\n' ,!?", rune) {
+			if strings.ContainsRune("' \n", rune) {
 				// pass
 			} else {
 				total -= SymbolPenalty
@@ -153,17 +162,64 @@ func englishnessCount(p []byte) int {
 }
 
 // xor with the character making it the most english-y
-func anglify(x string) (int, string) {
-	xB := bytesOfHex(x)
+func anglifyB(xB []byte) (rune, int, string) {
 	plaintext := xB
 	score := englishnessCount(xB)
-	for rune := '0'; rune <= 'z'; rune++ {
+	key := '0'
+	for rune := ' '; rune <= '~'; rune++ {
 		guessPlaintext := xorcs(xB, rune)
 		guessScore := englishnessCount(guessPlaintext)
-		// log.Printf("%v, %q", guessScore, guessPlaintext)
+		// log.Printf("%d, %d, %q", score, guessScore, guessPlaintext)
 		if guessScore > score {
 			score, plaintext = guessScore, guessPlaintext
+			key = rune
 		}
 	}
-	return score, fmt.Sprintf("%s", plaintext)
+	return key, score, fmt.Sprintf("%s", plaintext)
+}
+
+func anglify(x string) (rune, int, string) {
+	xB := bytesOfHex(x)
+	return anglifyB(xB)
+}
+
+func hamming(a, b []byte) (int, error) {
+	if len(a) != len(b) {
+		return 0, errors.New("Can't compute Hamming distance for strings of different length")
+	}
+
+	distance := 0
+	// bytes
+	for i := 0; i < len(a); i++ {
+		// bits
+		b1, b2 := a[i], b[i]
+		for j := 0; j < 8; j++ {
+			mask := byte(1 << uint(j))
+			if (b1 & mask) != (b2 & mask) {
+				distance++
+			}
+		}
+	}
+	return distance, nil
+}
+
+func hammingS(a, b string) (int, error) {
+	return hamming([]byte(a), []byte(b))
+}
+
+func transposeInplace(a [][]byte) [][]byte {
+	n := len(a)
+	if n == 0 {
+		panic("WTF are you doing with zero-length arrays?!")
+	}
+	m := len(a[0])
+
+	dst := make([][]byte, m)
+	for j := 0; j < m; j++ {
+		dst[j] = make([]byte, n)
+		for i := 0; i < n; i++ {
+			dst[j][i] = a[i][j]
+		}
+	}
+	return dst
 }
