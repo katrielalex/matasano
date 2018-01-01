@@ -8,7 +8,7 @@ import "math"
 import "unicode/utf8"
 
 // decode a hex string into a byte array
-func bytes_of_hex(s string) []byte {
+func bytesOfHex(s string) []byte {
 	decoded, err := hex.DecodeString(s)
 	if err != nil {
 		log.Fatal(err)
@@ -17,18 +17,18 @@ func bytes_of_hex(s string) []byte {
 }
 
 // encode byte array to hex string
-func hex_of_bytes(b []byte) string {
+func hexOfBytes(b []byte) string {
 	return hex.EncodeToString(b)
 }
 
 // encode a byte array into b64
-func b64_of_bytes(b []byte) string {
+func b64OfBytes(b []byte) string {
 	return b64.StdEncoding.EncodeToString(b)
 }
 
 // convert hex to b64 via bytes
-func b64_of_hex(s string) string {
-	return b64_of_bytes(bytes_of_hex(s))
+func b64OfHex(s string) string {
+	return b64OfBytes(bytesOfHex(s))
 }
 
 // xor two byte arrays
@@ -54,7 +54,7 @@ func xorc(a []byte, b byte) []byte {
 }
 
 // same as the above but with a rune
-func xorc_s(a []byte, rune rune) []byte {
+func xorcs(a []byte, rune rune) []byte {
 	b := make([]byte, 1)
 	if utf8.RuneLen(rune) > 1 {
 		log.Fatal("wtf")
@@ -64,7 +64,7 @@ func xorc_s(a []byte, rune rune) []byte {
 }
 
 // copy-pasted from wikipedia
-var english_freqs = map[rune]float64{
+var englishFreqs = map[rune]float64{
 	'a': 0.08167,
 	'b': 0.01492,
 	'c': 0.02782,
@@ -94,17 +94,17 @@ var english_freqs = map[rune]float64{
 }
 
 // english-ness score by character freq
-func englishness_l2(p []byte) float64 {
+func englishnessL2(p []byte) float64 {
 	n := len(p)
-	n_inv := 1.0 / float64(n)
+	nInv := 1.0 / float64(n)
 	freqs := make(map[rune]float64)
 	for _, rune := range fmt.Sprintf("%s", p) {
-		freqs[rune] += n_inv
+		freqs[rune] += nInv
 	}
 
 	// l2 difference between frequencies
 	total := 0.0
-	for rune, freq := range english_freqs {
+	for rune, freq := range englishFreqs {
 		diff := freq - freqs[rune]
 		total += diff * diff
 	}
@@ -119,16 +119,17 @@ func isLetter(r rune) bool {
 
 // english-ness score by symbol counting: +frequency points for a letter, -1
 // point for anything not a-zA-Z
-func englishness_count(p []byte) int {
+func englishnessCount(p []byte) int {
+	const SymbolPenalty int = 1
 	total := 0
 	for _, rune := range fmt.Sprintf("%s", p) {
 		if isLetter(rune) {
 			if rune > 'Z' {
 				rune -= 26
 			}
-			total += int(english_freqs[rune] * 100)
+			total += int(englishFreqs[rune] * 100)
 		} else {
-			total -= 1
+			total -= SymbolPenalty
 		}
 	}
 	return total
