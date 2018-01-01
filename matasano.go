@@ -68,6 +68,14 @@ func xorcs(a []byte, rune rune) []byte {
 	return xorc(a, b[0])
 }
 
+func xorKey(a []byte, key string) []byte {
+	dst := make([]byte, len(a))
+	for i, b := range a {
+		dst[i] = b ^ key[i%len(key)]
+	}
+	return dst
+}
+
 // copy-pasted from wikipedia
 var englishFreqs = map[rune]float64{
 	'a': 0.08167,
