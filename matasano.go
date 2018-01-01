@@ -5,14 +5,19 @@ import hex "encoding/hex"
 import "fmt"
 import "log"
 import "math"
+import "strings"
 import "unicode/utf8"
+
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 // decode a hex string into a byte array
 func bytesOfHex(s string) []byte {
 	decoded, err := hex.DecodeString(s)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 	return decoded
 }
 
@@ -124,13 +129,33 @@ func englishnessCount(p []byte) int {
 	total := 0
 	for _, rune := range fmt.Sprintf("%s", p) {
 		if isLetter(rune) {
-			if rune > 'Z' {
-				rune -= 26
+			if 'A' <= rune && rune <= 'Z' {
+				rune += 26
 			}
-			total += int(englishFreqs[rune] * 100)
+			total += int(englishFreqs[rune] * 10)
 		} else {
-			total -= SymbolPenalty
+			if strings.ContainsRune("\"\n' ,!?", rune) {
+				// pass
+			} else {
+				total -= SymbolPenalty
+			}
 		}
 	}
 	return total
+}
+
+// xor with the character making it the most english-y
+func anglify(x string) (int, string) {
+	xB := bytesOfHex(x)
+	plaintext := xB
+	score := englishnessCount(xB)
+	for rune := '0'; rune <= 'z'; rune++ {
+		guessPlaintext := xorcs(xB, rune)
+		guessScore := englishnessCount(guessPlaintext)
+		// log.Printf("%v, %q", guessScore, guessPlaintext)
+		if guessScore > score {
+			score, plaintext = guessScore, guessPlaintext
+		}
+	}
+	return score, fmt.Sprintf("%s", plaintext)
 }
