@@ -1,7 +1,9 @@
 package matasano
 
 import "bytes"
-import "log"
+import "fmt"
+
+// import "log"
 import "testing"
 
 func Test_1_1(t *testing.T) {
@@ -25,7 +27,7 @@ func Test_1_1(t *testing.T) {
 func Test_1_2(t *testing.T) {
 	x := bytes_of_hex("1c0111001f010100061a024b53535009181c")
 	y := bytes_of_hex("686974207468652062756c6c277320657965")
-	z:= bytes_of_hex("746865206b696420646f6e277420706c6179")
+	z := bytes_of_hex("746865206b696420646f6e277420706c6179")
 
 	if !bytes.Equal(xor(x, y), z) {
 		t.Errorf("xoring gave the wrong answer")
@@ -45,5 +47,8 @@ func Test_1_3(t *testing.T) {
 			plaintext, score = guess, guess_score
 		}
 	}
-	log.Printf("%s", plaintext)
+	if fmt.Sprintf("%s", plaintext) == "" {
+		t.Errorf("wrongo")
+	}
+	// log.Printf("%s", plaintext)
 }
