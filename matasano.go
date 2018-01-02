@@ -267,3 +267,16 @@ func hasRepeatedBlocks(ciphertext []byte, bs int) bool {
 	}
 	return len(m) < len(ciphertext)/bs
 }
+
+func pkcs7(a []byte, to int) []byte {
+	if to <= len(a) {
+		panic("Can't pad to a shorter length")
+	}
+	paddingLength := to - len(a)
+	var padded bytes.Buffer
+	padded.Write(a)
+	for i := 0; i < paddingLength; i++ {
+		padded.Write([]byte{byte(paddingLength)})
+	}
+	return padded.Bytes()
+}
