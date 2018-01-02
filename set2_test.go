@@ -33,7 +33,7 @@ func Test_2_10(t *testing.T) {
 func Test_cbc_roundtrip(t *testing.T) {
 	b, err := aes.NewCipher([]byte("YELLOW SUBMARINE"))
 	check(err)
-	plaintext := []byte("ORANGE SUBMARINE")
+	plaintext := []byte(strings.Repeat("ORANGE SUBMARINE", 100))
 	iv := []byte(strings.Repeat("\x00", 16))
 	ciphertext := cbcEncrypt(b, iv, plaintext)
 	if !bytes.Equal(cbcDecrypt(b, iv, ciphertext), plaintext) {
@@ -49,6 +49,22 @@ func Test_random_does_not_repeat(t *testing.T) {
 }
 
 func Test_encryptionOracle(t *testing.T) {
-	plain := "sup world"
-	encryptionOracle([]byte(plain))
+	plain := []byte("sup world")
+	_, ciphertext := encryptionOracle(plain)
+	if bytes.Equal(plain, ciphertext) {
+		t.Error("You done goofed")
+	}
+	// log.Printf("\n%d %q\n%d %q", len(plain), plain, len(ciphertext), ciphertext)
+}
+
+func Test_2_11(t *testing.T) {
+	const bs int = 16
+	plain := []byte(strings.Repeat("\x00", 1024))
+	for i := 0; i < 50; i++ {
+		wasEcb, ciphertext := encryptionOracle(plain)
+		guessEcb := hasRepeatedBlocks(ciphertext, bs)
+		if guessEcb != wasEcb {
+			t.Error("Failed to identify ECB")
+		}
+	}
 }

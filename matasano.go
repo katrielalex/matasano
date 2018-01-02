@@ -2,6 +2,7 @@ package matasano
 
 import "bufio"
 import "bytes"
+import "crypto/aes"
 import "crypto/cipher"
 import "crypto/rand"
 import "errors"
@@ -320,12 +321,13 @@ func cbc(b cipher.Block, iv []byte, x []byte, d dirn) []byte {
 			b.Decrypt(nextBlock, curBlock)
 			nextBlock = xor(nextBlock, prevBlock)
 			dst.Write(nextBlock)
+			prevBlock = curBlock
 		} else {
 			nextBlock := xor(prevBlock, curBlock)
 			b.Encrypt(nextBlock, nextBlock)
 			dst.Write(nextBlock)
+			prevBlock = nextBlock
 		}
-		prevBlock = curBlock
 	}
 	return dst.Bytes()
 }
@@ -349,10 +351,10 @@ func pkcs7Bs(plain []byte, bs int) []byte {
 	n := len(plain)
 	var to int
 	// always add at least one byte of pkcs7 padding
-	if (n+1)%bs == 0 {
-		to = n + 1 + bs
+	if n%bs == 0 {
+		to = n + bs
 	} else {
-		to = n + 1 + (n+1)%bs
+		to = n + bs - (n % bs)
 	}
 	return pkcs7(plain, to)
 }
@@ -364,20 +366,43 @@ func randInt(min, max int) int {
 	return n + min
 }
 
-func encryptionOracle(plain []byte) []byte {
+func randBool() bool {
+	return randInt(0, 2) == 0
+}
+
+// returns wasEcb, ciphertext
+func encryptionOracle(plain []byte) (bool, []byte) {
 	const bs int = 16
-	// key := randomAESKey(bs)
 
-	prefix := make([]byte, randInt(5, 10))
-	_, err := rand.Read(prefix)
-	check(err)
+	{ // Add random junk to the plaintext and pad it
+		prefix := make([]byte, randInt(5, 10))
+		_, err := rand.Read(prefix)
+		check(err)
 
-	suffix := make([]byte, randInt(5, 10))
-	_, err = rand.Read(suffix)
-	check(err)
+		suffix := make([]byte, randInt(5, 10))
+		_, err = rand.Read(suffix)
+		check(err)
 
-	plain = append(prefix, plain...)
-	plain = append(plain, suffix...)
-	plain = pkcs7Bs(plain, bs)
-	return plain
+		plain = append(prefix, plain...)
+		plain = append(plain, suffix...)
+		plain = pkcs7Bs(plain, bs)
+	}
+
+	// Encrypt with either ecb or cbc
+	var ciphertext []byte
+	useEcb := randBool()
+	{
+		b, err := aes.NewCipher(randomAESKey(bs))
+		check(err)
+		if useEcb {
+			// ecb mode
+			ciphertext = ecbEncrypt(b, plain)
+		} else {
+			// cbc mode
+			iv := randomAESKey(bs)
+			ciphertext = cbcEncrypt(b, iv, plain)
+		}
+	}
+
+	return useEcb, ciphertext
 }
