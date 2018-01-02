@@ -1,4 +1,4 @@
-![travis build status](https://travis-ci.org/katrielalex/matasano.svg?branch=master)
+[![Build Status](https://travis-ci.org/katrielalex/matasano.svg?branch=master)](https://travis-ci.org/katrielalex/matasano)
 
 # Katriel's Bad Matasano Attempts While Learning Go #
 
