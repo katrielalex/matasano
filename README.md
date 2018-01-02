@@ -1,3 +1,5 @@
+![travis build status](https://travis-ci.org/katrielalex/matasano.svg?branch=master)
+
 # Katriel's Bad Matasano Attempts While Learning Go #
 
 I started writing these in Python and then decided that I would learn much more
