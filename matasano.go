@@ -300,3 +300,38 @@ func pkcs7(a []byte, to int) []byte {
 	}
 	return padded.Bytes()
 }
+
+func cbc(b cipher.Block, iv []byte, x []byte, d dirn) []byte {
+	bs := b.BlockSize()
+	if len(x)%bs > 0 {
+		panic("Need a multiple of the blocksize")
+	}
+	if len(iv) != bs {
+		panic("IV length must equal blocksize")
+	}
+	var dst bytes.Buffer
+	prevBlock := iv
+	for i := 0; i < len(x)/bs; i++ {
+		curBlock := x[i*bs : (i+1)*bs]
+		if d == dec {
+			nextBlock := make([]byte, bs)
+			b.Decrypt(nextBlock, curBlock)
+			nextBlock = xor(nextBlock, prevBlock)
+			dst.Write(nextBlock)
+		} else {
+			nextBlock := xor(prevBlock, curBlock)
+			b.Encrypt(nextBlock, nextBlock)
+			dst.Write(nextBlock)
+		}
+		prevBlock = curBlock
+	}
+	return dst.Bytes()
+}
+
+func cbcDecrypt(block cipher.Block, iv []byte, ciphertext []byte) []byte {
+	return cbc(block, iv, ciphertext, dec)
+}
+
+func cbcEncrypt(block cipher.Block, iv []byte, plaintext []byte) []byte {
+	return cbc(block, iv, plaintext, enc)
+}
