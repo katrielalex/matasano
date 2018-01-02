@@ -149,3 +149,21 @@ func Test_1_7(t *testing.T) {
 		t.Error("Failed to AES ECB decrypt")
 	}
 }
+
+func Test_1_8(t *testing.T) {
+	f, err := os.Open("data/8.txt")
+	check(err)
+	defer func() { check(f.Close()) }()
+
+	var putativeEcbLines [][]byte
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := bytesOfHex(strings.TrimSuffix(scanner.Text(), "\n"))
+		if hasRepeatedBlocks(line, 16) {
+			putativeEcbLines = append(putativeEcbLines, line)
+		}
+	}
+	if len(putativeEcbLines) == 0 {
+		t.Error("Found no lines with repeating blocks")
+	}
+}

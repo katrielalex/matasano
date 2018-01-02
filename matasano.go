@@ -256,3 +256,14 @@ func ecbDecrypt(block cipher.Block, ciphertext []byte) []byte {
 	}
 	return plain.Bytes()
 }
+
+func hasRepeatedBlocks(ciphertext []byte, bs int) bool {
+	if len(ciphertext)%bs > 0 {
+		panic("Need a multiple of the blocksize")
+	}
+	m := make(map[string]bool)
+	for i := 0; i < len(ciphertext)/bs; i++ {
+		m[string(ciphertext[i*bs:(i+1)*bs])] = false
+	}
+	return len(m) < len(ciphertext)/bs
+}
