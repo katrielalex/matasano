@@ -12,6 +12,7 @@ import "math"
 import "math/big"
 import "os"
 import "strings"
+import "sync"
 import "unicode/utf8"
 import b64 "encoding/base64"
 import hex "encoding/hex"
@@ -373,7 +374,6 @@ func randBool() bool {
 // returns wasEcb, ciphertext
 func encryptionOracle(plain []byte) (bool, []byte) {
 	const bs int = 16
-
 	{ // Add random junk to the plaintext and pad it
 		prefix := make([]byte, randInt(5, 10))
 		_, err := rand.Read(prefix)
@@ -405,4 +405,54 @@ func encryptionOracle(plain []byte) (bool, []byte) {
 	}
 
 	return useEcb, ciphertext
+}
+
+// only generate the secret key once (http://marcio.io/2015/07/singleton-pattern-in-go)
+var secretKey []byte
+var once sync.Once
+
+func getSecretKey() []byte {
+	once.Do(func() {
+		secretKey = randomAESKey(16)
+	})
+	return secretKey
+}
+
+func ecbSecretKeyOracle(plain []byte) []byte {
+	const bs int = 16
+	suffix := readB64File("data/baat.txt")
+	plain = append(plain, suffix...)
+	plain = append(plain, []byte("aaaaa")...) // uh shit I can't handle the last block
+	plain = pkcs7Bs(plain, bs)
+
+	// Encrypt with either ecb or cbc
+	b, err := aes.NewCipher(getSecretKey())
+	check(err)
+	ciphertext := ecbEncrypt(b, plain)
+
+	return ciphertext
+}
+
+type oracle func([]byte) []byte
+
+func getBlockSize(oracle oracle) int {
+	// Get block size
+	suffixLen, ciphertext := 0, oracle([]byte(""))
+	oneup := ciphertext
+	for len(oneup) == len(ciphertext) {
+		suffixLen++
+		oneup = oracle([]byte(strings.Repeat("A", suffixLen)))
+	}
+	return len(oneup) - len(ciphertext)
+}
+
+func isEcb(oracle oracle) bool {
+	bs := getBlockSize(oracle)
+	return isEcbBs(oracle, bs)
+}
+
+func isEcbBs(oracle oracle, bs int) bool {
+	plain := []byte(strings.Repeat("\x00", 1024))
+	cipher := oracle(plain)
+	return hasRepeatedBlocks(cipher, bs)
 }
