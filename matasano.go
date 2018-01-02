@@ -243,18 +243,38 @@ func transposeInplace(a [][]byte) [][]byte {
 	return dst
 }
 
-func ecbDecrypt(block cipher.Block, ciphertext []byte) []byte {
-	bs := block.BlockSize()
-	if len(ciphertext)%bs != 0 {
+type dirn int
+
+const (
+	enc dirn = iota
+	dec
+)
+
+func ecb(c cipher.Block, x []byte, d dirn) []byte {
+	bs := c.BlockSize()
+	if len(x)%bs != 0 {
 		panic("Need a multiple of the blocksize")
 	}
-	var plain bytes.Buffer
-	for i := 0; i < len(ciphertext)/bs; i++ {
-		plaintext := make([]byte, bs)
-		block.Decrypt(plaintext, ciphertext[i*bs:(i+1)*bs])
-		plain.Write(plaintext)
+	var dst bytes.Buffer
+	for i := 0; i < len(x)/bs; i++ {
+		y := make([]byte, bs)
+		block := x[i*bs : (i+1)*bs]
+		if d == dec {
+			c.Decrypt(y, block)
+		} else {
+			c.Encrypt(y, block)
+		}
+		dst.Write(y)
 	}
-	return plain.Bytes()
+	return dst.Bytes()
+}
+
+func ecbDecrypt(block cipher.Block, ciphertext []byte) []byte {
+	return ecb(block, ciphertext, dec)
+}
+
+func ecbEncrypt(block cipher.Block, plaintext []byte) []byte {
+	return ecb(block, plaintext, enc)
 }
 
 func hasRepeatedBlocks(ciphertext []byte, bs int) bool {
