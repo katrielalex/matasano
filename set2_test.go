@@ -8,7 +8,7 @@ import "fmt"
 import "strings"
 import "testing"
 
-func Test_2_1(t *testing.T) {
+func Test_2_9(t *testing.T) {
 	got := []byte("YELLOW SUBMARINE")
 	want := []byte("YELLOW SUBMARINE\x04\x04\x04\x04")
 	padded := pkcs7(got, 20)
@@ -19,7 +19,7 @@ func Test_2_1(t *testing.T) {
 	}
 }
 
-func Test_2_2(t *testing.T) {
+func Test_2_10(t *testing.T) {
 	b, err := aes.NewCipher([]byte("YELLOW SUBMARINE"))
 	check(err)
 	iv := []byte(strings.Repeat("\x00", 16))
@@ -39,4 +39,16 @@ func Test_cbc_roundtrip(t *testing.T) {
 	if !bytes.Equal(cbcDecrypt(b, iv, ciphertext), plaintext) {
 		t.Error("Failed CBC roundtrip")
 	}
+}
+
+func Test_random_does_not_repeat(t *testing.T) {
+	const bs int = 16
+	if bytes.Equal(randomAESKey(bs), randomAESKey(bs)) {
+		t.Error("You have RNG problems")
+	}
+}
+
+func Test_encryptionOracle(t *testing.T) {
+	plain := "sup world"
+	encryptionOracle([]byte(plain))
 }

@@ -3,10 +3,12 @@ package matasano
 import "bufio"
 import "bytes"
 import "crypto/cipher"
+import "crypto/rand"
 import "errors"
 import "fmt"
 import "log"
 import "math"
+import "math/big"
 import "os"
 import "strings"
 import "unicode/utf8"
@@ -334,4 +336,48 @@ func cbcDecrypt(block cipher.Block, iv []byte, ciphertext []byte) []byte {
 
 func cbcEncrypt(block cipher.Block, iv []byte, plaintext []byte) []byte {
 	return cbc(block, iv, plaintext, enc)
+}
+
+func randomAESKey(bs int) []byte {
+	key := make([]byte, bs)
+	_, err := rand.Read(key)
+	check(err)
+	return key
+}
+
+func pkcs7Bs(plain []byte, bs int) []byte {
+	n := len(plain)
+	var to int
+	// always add at least one byte of pkcs7 padding
+	if (n+1)%bs == 0 {
+		to = n + 1 + bs
+	} else {
+		to = n + 1 + (n+1)%bs
+	}
+	return pkcs7(plain, to)
+}
+
+func randInt(min, max int) int {
+	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	check(err)
+	n := int(nBig.Int64()) // truncation? fuck it
+	return n + min
+}
+
+func encryptionOracle(plain []byte) []byte {
+	const bs int = 16
+	// key := randomAESKey(bs)
+
+	prefix := make([]byte, randInt(5, 10))
+	_, err := rand.Read(prefix)
+	check(err)
+
+	suffix := make([]byte, randInt(5, 10))
+	_, err = rand.Read(suffix)
+	check(err)
+
+	plain = append(prefix, plain...)
+	plain = append(plain, suffix...)
+	plain = pkcs7Bs(plain, bs)
+	return plain
 }
