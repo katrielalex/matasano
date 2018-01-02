@@ -1,13 +1,17 @@
 package matasano
 
-import b64 "encoding/base64"
-import hex "encoding/hex"
+import "bufio"
+import "bytes"
+import "crypto/cipher"
 import "errors"
 import "fmt"
 import "log"
 import "math"
+import "os"
 import "strings"
 import "unicode/utf8"
+import b64 "encoding/base64"
+import hex "encoding/hex"
 
 func check(err error) {
 	if err != nil {
@@ -207,6 +211,21 @@ func hammingS(a, b string) (int, error) {
 	return hamming([]byte(a), []byte(b))
 }
 
+func readB64File(path string) []byte {
+	// I'm sure there's a better way to read a b64 file...
+	f, err := os.Open(path)
+	check(err)
+	defer func() { check(f.Close()) }()
+
+	scanner := bufio.NewScanner(f)
+	var b bytes.Buffer
+	for scanner.Scan() {
+		b.Write(bytesOfB64(strings.TrimSuffix(scanner.Text(), "\n")))
+	}
+	s := b.Bytes()
+	return s
+}
+
 func transposeInplace(a [][]byte) [][]byte {
 	n := len(a)
 	if n == 0 {
@@ -222,4 +241,18 @@ func transposeInplace(a [][]byte) [][]byte {
 		}
 	}
 	return dst
+}
+
+func ecbDecrypt(block cipher.Block, ciphertext []byte) []byte {
+	bs := block.BlockSize()
+	if len(ciphertext)%bs != 0 {
+		panic("Need a multiple of the blocksize")
+	}
+	var plain bytes.Buffer
+	for i := 0; i < len(ciphertext)/bs; i++ {
+		plaintext := make([]byte, bs)
+		block.Decrypt(plaintext, ciphertext[i*bs:(i+1)*bs])
+		plain.Write(plaintext)
+	}
+	return plain.Bytes()
 }

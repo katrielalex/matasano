@@ -2,6 +2,7 @@ package matasano
 
 import "bufio"
 import "bytes"
+import "crypto/aes"
 import "log"
 import "os"
 import "strings"
@@ -44,7 +45,7 @@ func Test_1_3(t *testing.T) {
 func Test_1_4(t *testing.T) {
 	f, err := os.Open("data/4.txt")
 	check(err)
-	defer f.Close()
+	defer func() { check(f.Close()) }()
 
 	scanner := bufio.NewScanner(f)
 	score, plaintext := 0, ""
@@ -85,17 +86,7 @@ func Test_1_6a(t *testing.T) {
 }
 
 func Test_1_6b(t *testing.T) {
-	// I'm sure there's a better way to read a b64 file...
-	f, err := os.Open("data/6.txt")
-	check(err)
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	var b bytes.Buffer
-	for scanner.Scan() {
-		b.Write(bytesOfB64(strings.TrimSuffix(scanner.Text(), "\n")))
-	}
-	s := b.Bytes()
+	s := readB64File("data/6.txt")
 
 	// Find the keysize as the length with the smallest normalised edit
 	// distance between pairs of blocks
@@ -147,4 +138,14 @@ func Test_1_6b(t *testing.T) {
 	}
 	log.Print(key)
 	// log.Print(plain.String())
+}
+
+func Test_1_7(t *testing.T) {
+	ciphertext := readB64File("data/7.txt")
+	b, err := aes.NewCipher([]byte("YELLOW SUBMARINE"))
+	check(err)
+	plaintext := string(ecbDecrypt(b, ciphertext))
+	if !strings.Contains(plaintext, "I'm like Samson -- Samson to Delilah") {
+		t.Error("Failed to AES ECB decrypt")
+	}
 }
